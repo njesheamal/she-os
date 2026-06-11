@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: she_os_postgres
+    environment:
+      POSTGRES_USER: she_os_user
+      POSTGRES_PASSWORD: she_os_password
+      POSTGRES_DB: she_os_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - she_os_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  she_os_postgres_data:
+
+
+# NOTES:
+# a Docker compose file defines one or more pieces of my app.
+# each piece is called a "service". In this case, we have one service called "db" which is our PostgreSQL database.
+# think of the container as the computer that runs the database. The image is like the blueprint for that computer, and in this case, we are using the official PostgreSQL image version 16. The volume is like a hard drive that stores the data of the database, and we are naming it "she_os_postgres_data". The environment variables are like settings that we need to provide to the database, such as the username, password, and database name. Finally, the ports section is like opening a door to allow other parts of our app to communicate with the database. In this case, we are mapping port 5432 on our computer to port 5432 in the container, which is the default port for PostgreSQL.
