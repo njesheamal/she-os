@@ -86,7 +86,7 @@ Produce garments in Nigeria.
 
 ⸻
 
-Shipment
+Inbound shipment
 
 Movement of materials or products.
 
@@ -95,6 +95,54 @@ Movement of materials or products.
 Purchase Order
 
 Represents materials ordered from partners.
+
+⸻
+
+Inventory Movement
+
+Represents a recorded change to SHÉ-owned inventory.
+
+Examples:
+
+* Receiving finished wigs from an inbound shipment
+* Moving products from Abuja to a SHÉ Studio
+* Sending products to a vendor event
+* Recording damaged or lost inventory
+* Consuming SHÉ-owned materials during production
+* Correcting inventory after a physical count
+
+⸻
+
+Inventory Balance
+
+Examples of items that may not have balances include:
+
+* Made-to-order products that have not yet been produced
+* Raw materials purchased and owned by an artisan
+* Drop-shipped products that never enter SHÉ-controlled inventory
+
+⸻
+
+Inventory Location
+
+Represents a place where SHÉ-owned inventory is intentionally
+tracked.
+
+Examples:
+
+- Abuja production location
+- SHÉ Studio
+- Warehouse
+- Temporary vendor-event location
+- Temporary storage location
+
+An Inventory Location may have a type such as:
+
+- warehouse
+- studio
+- production_site
+- event
+- temporary_storage
 
 ⸻
 
@@ -110,6 +158,6 @@ A single Item may connect to:
 * a Sourcing Trip
 * an Observation
 * a Decision
-* a Shipment
+* an Inbound shipment
 
 The goal is to model relationships instead of isolated records.
