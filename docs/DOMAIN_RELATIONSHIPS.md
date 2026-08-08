@@ -1,5 +1,3 @@
-Here’s the version I would actually commit based on the matrix and the corrections we’ve made.
-
 DOMAIN_RELATIONSHIPS.md
 
 Purpose
@@ -22,8 +20,10 @@ Core Entities
 * Observation
 * Decision
 * PurchaseOrder
-* Shipment
-* Warehouse
+* InboundShipment
+* InventoryLocation
+* InventoryMovement
+* InventoryBalance
 
 ⸻
 
@@ -47,8 +47,10 @@ Relationships:
 * Brand ↔ Observation
 * Brand ↔ Decision
 * Brand ↔ PurchaseOrder
-* Brand ↔ Shipment
-* Brand ↔ Warehouse
+* Brand ↔ InboundShipment
+* Brand ↔ InventoryLocation
+* Brand ↔ InventoryMovement
+* Brand ↔ InventoryBalance
 
 Notes:
 
@@ -77,12 +79,13 @@ Relationships:
 * Initiative ↔ Observation
 * Initiative ↔ Decision
 * Initiative ↔ PurchaseOrder
-* Initiative ↔ Shipment
-* Initiative ↔ Warehouse
+* Initiative ↔ InboundShipment
+* Initiative ↔ InventoryLocation
+* Initiative ↔ InventoryMovement
 
 Business Rule:
 
-Warehouse participation is conditional.
+Inventory location participation is conditional.
 
 Examples:
 
@@ -117,14 +120,22 @@ Relationships:
 * Item ↔ Observation
 * Item ↔ Decision
 * Item ↔ PurchaseOrder
-* Item ↔ Shipment
-* Item ↔ Warehouse
+* Item ↔ InboundShipment
+* Item ↔ InventoryLocation
+* Item ↔ InventoryMovement
+* Item ↔ InventoryBalance
 
 Notes:
 
 Items are one of the primary entities within SHÉ OS.
 
-Many observations, decisions, sourcing trips, purchase orders, shipments, and warehouse interactions ultimately exist because of items.
+Many observations, decisions, sourcing trips, purchase orders, inbound shipments, and inventory location interactions ultimately exist because of items.
+
+An Item may connect to:
+
+- an Inventory Balance
+- an Inventory Movement
+- an Inventory Location, when SHÉ tracks where that inventory is held
 
 ⸻
 
@@ -151,8 +162,10 @@ Relationships:
 * Partner ↔ Observation
 * Partner ↔ Decision
 * Partner ↔ PurchaseOrder
-* Partner ↔ Shipment
-* Partner ↔ Warehouse
+* Partner ↔ InboundShipment
+* Partner ↔ InventoryLocation
+* Partner ↔ InventoryMovement
+* Partner ↔ InventoryBalance
 
 Business Rules:
 
@@ -169,7 +182,7 @@ Examples:
 * One beader
 * One manufacturer
 
-A shipment may contain products from multiple partners.
+An inbound shipment may contain products from multiple partners.
 
 Examples:
 
@@ -180,9 +193,9 @@ Examples:
 
 Therefore:
 
-One Shipment → Many Partners
+One InboundShipment → Many Partners
 
-One Partner → Many Shipments
+One Partner → Many InboundShipments
 
 ⸻
 
@@ -206,7 +219,7 @@ Relationships:
 * SourcingTrip ↔ Observation
 * SourcingTrip ↔ Decision
 * SourcingTrip ↔ PurchaseOrder
-* SourcingTrip ↔ Shipment
+* SourcingTrip ↔ InboundShipment
 
 Business Rules:
 
@@ -217,14 +230,15 @@ Sourcing trips are expected to generate:
 * Decisions
 * Purchase Orders
 
-Sourcing trips do not have a direct relationship to warehouses.
+Sourcing trips do not have a direct relationship to InventoryLocations.
 
-Warehouse interactions occur through:
+Inventory location interactions occur through:
 
 * Items
 * Partners
 * Purchase Orders
-* Shipments
+* Inbound Shipments
+* Inventory Movements
 
 not through the sourcing trip itself.
 
@@ -249,8 +263,9 @@ Relationships:
 * Observation ↔ SourcingTrip
 * Observation ↔ Decision
 * Observation ↔ PurchaseOrder
-* Observation ↔ Shipment
-* Observation ↔ Warehouse
+* Observation ↔ InboundShipment
+* Observation ↔ InventoryLocation
+* Observation ↔ InventoryMovement
 
 Notes:
 
@@ -279,8 +294,9 @@ Relationships:
 * Decision ↔ SourcingTrip
 * Decision ↔ Observation
 * Decision ↔ PurchaseOrder
-* Decision ↔ Shipment
-* Decision ↔ Warehouse
+* Decision ↔ InboundShipment
+* Decision ↔ InventoryLocation
+* Decision ↔ InventoryMovement
 
 Notes:
 
@@ -301,8 +317,9 @@ Relationships:
 * PurchaseOrder ↔ SourcingTrip
 * PurchaseOrder ↔ Observation
 * PurchaseOrder ↔ Decision
-* PurchaseOrder ↔ Shipment
-* PurchaseOrder ↔ Warehouse
+* PurchaseOrder ↔ InboundShipment
+* PurchaseOrder ↔ InventoryLocation
+* PurchaseOrder ↔ InventoryMovement
 
 Business Rules:
 
@@ -310,14 +327,14 @@ One Purchase Order → One Partner
 
 One Partner → Many Purchase Orders
 
-A purchase order may or may not interact with a warehouse depending on the fulfillment model.
+A purchase order may or may not interact with an inventory location depending on the fulfillment model.
 
 Examples:
 
 SUMA
 
 Purchase Order
-→ Warehouse
+→ Abuja warehouse
 → Customer
 
 TUFA
@@ -332,31 +349,153 @@ Purchase Order
 → Vendor
 → Customer
 
-Warehouse interaction is conditional.
+Inventory location interaction is conditional.
 
-A purchase order can only be shipped once.
+A purchase order may be fulfilled across one or more inbound shipments.
 
 ⸻
 
-Shipment
+InventoryLocation
+
+Represents a physical or temporary place where SHÉ-owned inventory is tracked.
+
+Examples:
+
+* Abuja production location
+* SHÉ Studio
+* Abuja warehouse
+* Africa Fashion Week DMV vendor location
+* Temporary event storage
+
+Relationships:
+
+* InventoryLocation ↔ Brand
+* InventoryLocation ↔ Initiative
+* InventoryLocation ↔ Item
+* InventoryLocation ↔ Partner
+* InventoryLocation ↔ Observation
+* InventoryLocation ↔ Decision
+* InventoryLocation ↔ InventoryMovement
+* InventoryLocation ↔ InventoryBalance
+
+Business Rules:
+
+Not every Item requires an InventoryLocation.
+
+Made-to-order items may have no tracked inventory location before production.
+
+Materials owned and stored by artisans are not SHÉ-controlled inventory unless SHÉ explicitly assumes ownership or requires tracking.
+
+Inventory locations may be temporary.
+
+An inventory location may remain in the historical record after it is no longer used.
+
+Inventory location status may include:
+
+* active
+* inactive
+
+Inactive locations remain connected to observations, decisions, inventory movements, and historical business activity.
+
+Inventory location type may include:
+
+* warehouse
+* studio
+* production_site
+* event
+* temporary_storage
+
+⸻
+
+InventoryMovement
+
+Represents a recorded change to SHÉ-owned inventory.
+
+Examples:
+
+* Receiving finished wigs in Abuja
+* Moving inventory to a SHÉ Studio
+* Sending products to a vendor event
+* Recording damaged inventory
+* Recording lost inventory
+* Consuming SHÉ-owned materials
+* Correcting inventory after a physical count
+
+Relationships:
+
+* InventoryMovement ↔ Brand
+* InventoryMovement ↔ Initiative
+* InventoryMovement ↔ Item
+* InventoryMovement ↔ Partner
+* InventoryMovement ↔ PurchaseOrder
+* InventoryMovement ↔ InventoryLocation
+* InventoryMovement ↔ InboundShipment
+* InventoryMovement ↔ Observation
+* InventoryMovement ↔ Decision
+
+Business Rules:
+
+Every tracked inventory quantity change must be represented by an InventoryMovement.
+
+Inventory movements preserve the historical reason inventory changed.
+
+An inventory movement may increase, decrease, or transfer inventory.
+
+A transfer between InventoryLocations must preserve both the source and destination and must record both the decrease at the source and the increase at the destination.
+
+Inventory movements must not be deleted during normal application use.
+
+⸻
+
+InventoryBalance
+
+Represents the current tracked quantity of an Item at an InventoryLocation.
+
+Relationships:
+
+* InventoryBalance ↔ Brand
+* InventoryBalance ↔ Item
+* InventoryBalance ↔ Partner
+* InventoryBalance ↔ InventoryLocation
+
+Business Rules:
+
+An InventoryBalance is derived and maintained automatically from InventoryMovements.
+
+An InventoryBalance must not be changed independently of an InventoryMovement.
+
+Not every Item has an InventoryBalance.
+
+Made-to-order items may have no balance until a physical item exists and SHÉ begins tracking it.
+
+Items owned and stored by artisans are not included unless they are SHÉ-controlled inventory.
+
+One Item may have balances at multiple InventoryLocations.
+
+One InventoryLocation may contain balances for multiple Items.
+
+⸻
+
+Inbound Shipment
 
 Represents movement of goods.
 
 Relationships:
 
-* Shipment ↔ Brand
-* Shipment ↔ Initiative
-* Shipment ↔ Item
-* Shipment ↔ Partner
-* Shipment ↔ SourcingTrip
-* Shipment ↔ Observation
-* Shipment ↔ Decision
-* Shipment ↔ PurchaseOrder
-* Shipment ↔ Warehouse
+* InboundShipment ↔ Brand
+* InboundShipment ↔ Initiative
+* InboundShipment ↔ Item
+* InboundShipment ↔ Partner
+* InboundShipment ↔ SourcingTrip
+* InboundShipment ↔ Observation
+* InboundShipment ↔ Decision
+* InboundShipment ↔ PurchaseOrder
+* InboundShipment ↔ InventoryLocation
+* InboundShipment ↔ InventoryMovement
 
 Business Rules:
 
-A shipment may contain:
+An inbound shipment may contain:
 
 * Multiple purchase orders
 * Multiple items
@@ -365,7 +504,7 @@ A shipment may contain:
 
 Examples:
 
-One shipment may contain:
+One inbound shipment may contain:
 
 * wigs from braiders
 * garments from tailors
@@ -373,11 +512,11 @@ One shipment may contain:
 
 Relationship:
 
-One Shipment → Many Purchase Orders
+One Inbound Shipment → One or  Many Purchase Orders
 
-One Purchase Order → One Shipment
+An inbound shipment may contain goods from one or more purchase orders.
 
-Purchase orders cannot be split across multiple shipments.
+Purchase order lines and inbound shipment lines must preserve which ordered quantities were shipped, received, accepted, damaged, or outstanding
 
 Returns are not currently modeled.
 
@@ -387,50 +526,9 @@ Incorrect products are currently treated as:
 * marketing inventory
 * future rework inventory
 
-Warehouse interaction is conditional.
+Inventory location interaction is conditional.
 
 ⸻
-
-Warehouse
-
-Represents storage and fulfillment locations.
-
-Relationships:
-
-* Warehouse ↔ Brand
-* Warehouse ↔ Initiative
-* Warehouse ↔ Item
-* Warehouse ↔ Partner
-* Warehouse ↔ Observation
-* Warehouse ↔ Decision
-* Warehouse ↔ PurchaseOrder
-* Warehouse ↔ Shipment
-
-Business Rules:
-
-Warehouse participation depends on business model.
-
-Examples:
-
-SUMA
-Warehouse likely.
-
-TUFA
-Warehouse may or may not be involved.
-
-GIDA
-Warehouse may or may not be involved depending on product type.
-
-SHÉ Rocks
-Typically no SHÉ-controlled inventory.
-
-Warehouse relationships should be evaluated through operational workflows rather than assumed universally.
-
-1. **SourcingTrip has no direct Warehouse relationship.**
-2. **PurchaseOrder belongs to exactly one Partner.**
-3. **Warehouse participation is conditional for both Initiatives and PurchaseOrders.**
-
-
 
 ## Future Domain Expansion
 

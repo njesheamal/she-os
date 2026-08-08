@@ -38,8 +38,8 @@ Version 0.2 — Inventory & Ecosystem
 * Items
 * Partners
 * Purchase Orders
-* Shipments
-* Inventory alerts
+* Inbound Shipments
+* Inventory Alerts
 
 ⸻
 
@@ -65,7 +65,7 @@ Version 0.4 — YARD
 
 Version 0.5 — Logistics
 
-* Warehouses
+* Inventory locations
 * Manufacturing partners
 * Shipping
 * Tracking
