@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from app.database.session import engine
 from app.routers import brand
 from app.routers import partner
+from app.routers import item
 
 load_dotenv()
 
@@ -29,6 +30,7 @@ app = FastAPI(
 
 app.include_router(brand.router)
 app.include_router(partner.router)
+app.include_router(item.router)
 
 @app.get("/")
 def root():
