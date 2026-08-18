@@ -7,6 +7,7 @@ from app.database.session import engine
 from app.routers import brand
 from app.routers import partner
 from app.routers import item
+from app.routers import initiative
 
 load_dotenv()
 
@@ -31,6 +32,7 @@ app = FastAPI(
 app.include_router(brand.router)
 app.include_router(partner.router)
 app.include_router(item.router)
+app.include_router(initiative.router)
 
 @app.get("/")
 def root():
