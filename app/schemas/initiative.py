@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.enums import InitiativeStatus
-from app.schemas.common import SLUG_PATTERN
+from app.common import SLUG_PATTERN
 
 
 class InitiativeBase(BaseModel):
