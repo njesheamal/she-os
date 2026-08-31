@@ -9,6 +9,7 @@ from app.routers import partner
 from app.routers import item
 from app.routers import initiative
 from app.routers import sourcing_trip
+from app.routers import observation
 
 load_dotenv()
 
@@ -35,6 +36,7 @@ app.include_router(partner.router)
 app.include_router(item.router)
 app.include_router(initiative.router)
 app.include_router(sourcing_trip.router)
+app.include_router(observation.router)
 
 @app.get("/")
 def root():
