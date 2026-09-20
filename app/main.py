@@ -13,6 +13,8 @@ from app.routers import observation
 from app.routers import inventory_location
 from app.routers import purchase_order
 from app.routers import inbound_shipment
+from app.routers.inventory_movement import router as inventory_movement_router
+from app.routers.inventory_movement import balances_router
 
 load_dotenv()
 
@@ -43,6 +45,8 @@ app.include_router(observation.router)
 app.include_router(inventory_location.router)
 app.include_router(purchase_order.router)
 app.include_router(inbound_shipment.router)
+app.include_router(inventory_movement_router)
+app.include_router(balances_router)
 
 
 @app.get("/")
