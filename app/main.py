@@ -11,6 +11,7 @@ from app.routers import initiative
 from app.routers import sourcing_trip
 from app.routers import observation
 from app.routers import inventory_location
+from app.routers import purchase_order
 
 load_dotenv()
 
@@ -39,6 +40,7 @@ app.include_router(initiative.router)
 app.include_router(sourcing_trip.router)
 app.include_router(observation.router)
 app.include_router(inventory_location.router)
+app.include_router(purchase_order.router)
 
 
 @app.get("/")
