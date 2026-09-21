@@ -10,9 +10,18 @@ from app.routers import item
 from app.routers import initiative
 from app.routers import sourcing_trip
 from app.routers import observation
+from app.routers import decision
 from app.routers import inventory_location
 from app.routers import purchase_order
 from app.routers import inbound_shipment
+from app.routers.associations import (
+    brand_associations,
+    decision_associations,
+    initiative_associations,
+    item_associations,
+    observation_associations,
+    sourcing_trip_associations,
+)
 from app.routers.inventory_movement import router as inventory_movement_router
 from app.routers.inventory_movement import balances_router
 
@@ -42,9 +51,16 @@ app.include_router(item.router)
 app.include_router(initiative.router)
 app.include_router(sourcing_trip.router)
 app.include_router(observation.router)
+app.include_router(decision.router)
 app.include_router(inventory_location.router)
 app.include_router(purchase_order.router)
 app.include_router(inbound_shipment.router)
+app.include_router(brand_associations.router)
+app.include_router(initiative_associations.router)
+app.include_router(sourcing_trip_associations.router)
+app.include_router(observation_associations.router)
+app.include_router(decision_associations.router)
+app.include_router(item_associations.router)
 app.include_router(inventory_movement_router)
 app.include_router(balances_router)
 
