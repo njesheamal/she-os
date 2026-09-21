@@ -1,0 +1,272 @@
+---
+
+## Context
+
+The GET endpoints for all 37 associations are already built and working. The repositories, services, and routers exist. What is missing is the **POST (link) and DELETE (unlink)** endpoints for 35 of the 37 associations.
+
+`brand_items` and `item_partners` are fully complete — do not touch those.
+
+---
+
+## What to add
+
+For every association listed below, add two things to the **existing** router, service, and repository files:
+
+**Router:** two new endpoint functions — POST to link, DELETE to unlink.
+
+**Service:** two new service functions — one to link, one to unlink.
+
+**Repository:** two new repository functions — one to insert a row, one to delete a row.
+
+Follow the exact pattern already implemented for `brand_items` in `app/routers/associations/brand_associations.py`, `app/services/associations/brand_associations.py`, and `app/repositories/associations/brand_associations.py`. Use those files as the reference implementation.
+
+---
+
+## Pattern reference
+
+**Repository — link:**
+```python
+def link_{entity_b}_to_{entity_a}(
+    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
+) -> None:
+    db.execute(
+        {association_table}.insert().values(
+            {entity_a}_id={entity_a}_id,
+            {entity_b}_id={entity_b}_id,
+        )
+    )
+    db.flush()
+```
+
+**Repository — unlink:**
+```python
+def unlink_{entity_b}_from_{entity_a}(
+    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
+) -> bool:
+    result = db.execute(
+        delete({association_table}).where(
+            {association_table}.c.{entity_a}_id == {entity_a}_id,
+            {association_table}.c.{entity_b}_id == {entity_b}_id,
+        )
+    )
+    db.flush()
+    return result.rowcount > 0
+```
+
+**Service — link:**
+```python
+def link_{entity_b}_to_{entity_a}(
+    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
+) -> None:
+    # verify entity_a exists
+    # verify entity_b exists
+    # try: repo.link, db.commit()
+    # except IntegrityError: db.rollback(), raise AlreadyLinkedError
+```
+
+**Service — unlink:**
+```python
+def unlink_{entity_b}_from_{entity_a}(
+    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
+) -> None:
+    # verify entity_a exists
+    # deleted = repo.unlink()
+    # if not deleted: raise NotLinkedError
+    # db.commit()
+```
+
+**Router — link:**
+```python
+@router.post(
+    "/{entity_a_id}/{entity_b_plural}/{entity_b_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def link_{entity_a}_{entity_b}(
+    {entity_a}_id: UUID,
+    {entity_b}_id: UUID,
+    db: Session = Depends(get_db),
+):
+    try:
+        assoc_service.link_{entity_b}_to_{entity_a}(db, {entity_a}_id, {entity_b}_id)
+    except {EntityA}NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except {EntityB}NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except AlreadyLinkedError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+```
+
+**Router — unlink:**
+```python
+@router.delete(
+    "/{entity_a_id}/{entity_b_plural}/{entity_b_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def unlink_{entity_a}_{entity_b}(
+    {entity_a}_id: UUID,
+    {entity_b}_id: UUID,
+    db: Session = Depends(get_db),
+):
+    try:
+        assoc_service.unlink_{entity_b}_from_{entity_a}(db, {entity_a}_id, {entity_b}_id)
+    except {EntityA}NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except NotLinkedError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+```
+
+---
+
+## Associations to complete — full table
+
+For each row below, add POST and DELETE to the existing router/service/repository files.
+
+### `app/routers/associations/brand_associations.py`
+
+| Association table | URL segment | Entity B ID param | Entity B repo get fn |
+|---|---|---|---|
+| `brand_initiatives` | `initiatives` | `initiative_id` | `initiative_repo.get` |
+| `brand_partners` | `partners` | `partner_id` | `partner_repo.get` |
+| `brand_sourcing_trips` | `sourcing-trips` | `sourcing_trip_id` | `trip_repo.get` — **DELETE only** (POST already exists) |
+| `brand_observations` | `observations` | `observation_id` | `observation_repo.get` |
+| `brand_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
+| `brand_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
+| `brand_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
+| `brand_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
+
+Note: `brand_sourcing_trips` already has a POST — add only the DELETE.
+
+### `app/routers/associations/initiative_associations.py`
+
+| Association table | URL segment | Entity B ID param | Entity B repo get fn |
+|---|---|---|---|
+| `initiative_items` | `items` | `item_id` | `item_repo.get` |
+| `initiative_partners` | `partners` | `partner_id` | `partner_repo.get` |
+| `initiative_sourcing_trips` | `sourcing-trips` | `sourcing_trip_id` | `trip_repo.get` |
+| `initiative_observations` | `observations` | `observation_id` | `observation_repo.get` |
+| `initiative_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
+| `initiative_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
+| `initiative_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
+| `initiative_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
+
+### `app/routers/associations/sourcing_trip_associations.py`
+
+| Association table | URL segment | Entity B ID param | Entity B repo get fn |
+|---|---|---|---|
+| `sourcing_trip_items` | `items` | `item_id` | `item_repo.get` |
+| `sourcing_trip_partners` | `partners` | `partner_id` | `partner_repo.get` |
+| `sourcing_trip_observations` | `observations` | `observation_id` | `observation_repo.get` |
+| `sourcing_trip_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
+| `sourcing_trip_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
+| `sourcing_trip_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
+
+### `app/routers/associations/observation_associations.py`
+
+| Association table | URL segment | Entity B ID param | Entity B repo get fn |
+|---|---|---|---|
+| `observation_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
+| `observation_items` | `items` | `item_id` | `item_repo.get` |
+| `observation_partners` | `partners` | `partner_id` | `partner_repo.get` |
+| `observation_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
+| `observation_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
+| `observation_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
+| `observation_inventory_movements` | `inventory-movements` | `inventory_movement_id` | `movement_repo.get` |
+
+### `app/routers/associations/decision_associations.py`
+
+| Association table | URL segment | Entity B ID param | Entity B repo get fn |
+|---|---|---|---|
+| `decision_items` | `items` | `item_id` | `item_repo.get` |
+| `decision_partners` | `partners` | `partner_id` | `partner_repo.get` |
+| `decision_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
+| `decision_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
+| `decision_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
+| `decision_inventory_movements` | `inventory-movements` | `inventory_movement_id` | `movement_repo.get` |
+
+---
+
+## Import paths for entity repositories
+
+These already exist and are importable as:
+
+```python
+from app.repositories import brand as brand_repo
+from app.repositories import partner as partner_repo
+from app.repositories import item as item_repo
+from app.repositories import initiative as initiative_repo
+from app.repositories import sourcing_trip as trip_repo
+from app.repositories import observation as observation_repo
+from app.repositories import decision as decision_repo
+from app.repositories import purchase_order as po_repo
+from app.repositories import inbound_shipment as shipment_repo
+from app.repositories import inventory_location as location_repo
+from app.repositories import inventory_movement as movement_repo
+```
+
+Each has a `get(db, id)` function returning the ORM object or `None`.
+
+---
+
+## Import paths for association tables
+
+All table objects are importable from:
+
+```python
+from app.models.associations import (
+    brand_initiatives,
+    brand_partners,
+    brand_sourcing_trips,
+    brand_observations,
+    brand_decisions,
+    brand_purchase_orders,
+    brand_inbound_shipments,
+    brand_inventory_locations,
+    initiative_items,
+    initiative_partners,
+    initiative_sourcing_trips,
+    initiative_observations,
+    initiative_decisions,
+    initiative_purchase_orders,
+    initiative_inbound_shipments,
+    initiative_inventory_locations,
+    sourcing_trip_items,
+    sourcing_trip_partners,
+    sourcing_trip_observations,
+    sourcing_trip_decisions,
+    sourcing_trip_purchase_orders,
+    sourcing_trip_inbound_shipments,
+    observation_decisions,
+    observation_items,
+    observation_partners,
+    observation_purchase_orders,
+    observation_inbound_shipments,
+    observation_inventory_locations,
+    observation_inventory_movements,
+    decision_items,
+    decision_partners,
+    decision_purchase_orders,
+    decision_inbound_shipments,
+    decision_inventory_locations,
+    decision_inventory_movements,
+)
+```
+
+---
+
+## Special case — `inventory_movement_id`
+
+The `observation_inventory_movements` and `decision_inventory_movements` tables link to `inventory_movements`. The repo get function is `movement_repo.get(db, movement_id)` from `app.repositories.inventory_movement`.
+
+---
+
+## Verification
+
+After implementation, run:
+
+```bash
+grep -r "def link_\|def unlink_" app/routers/associations/ | grep -v "__pycache__" | wc -l
+```
+
+Expected result: **70** — 35 link functions + 35 unlink functions across all association router files. (`brand_items` and `item_partners` already contribute 4 of those 70.)
+
+Then spot-check by linking SUMA to Naija New Year via `POST /brands/{suma_id}/sourcing-trips/{naija_new_year_id}` — should return 204, and `GET /brands/{suma_id}/sourcing-trips` should then include the Naija New Year trip.
