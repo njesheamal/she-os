@@ -15,7 +15,7 @@ else:
     engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
+    autocommit=False, # changes to the database are not automatically committed; must call db.commit() to save changes
+    autoflush=False,  # changes to the database are not automatically flushed; must call db.flush() to send changes to the database
+    bind=engine,      # the engine to use for database connections
 )

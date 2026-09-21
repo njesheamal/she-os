@@ -7,6 +7,7 @@ from sqlalchemy import (
     Date, 
     ForeignKey, 
     String, 
+    Boolean,
     Text)
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,6 +31,7 @@ class PurchaseOrder(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     expected_date: Mapped[date | None] = mapped_column(Date)
     currency_code: Mapped[str | None] = mapped_column(CHAR(3))
     notes: Mapped[str | None] = mapped_column(Text)
+    production_brief: Mapped[str | None] = mapped_column(Text)
 
     __table_args__ = (
         CheckConstraint(
