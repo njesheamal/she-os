@@ -1,272 +1,134 @@
+# Copilot prompt: SHÉ OS AI synthesis endpoint
 ---
 
-## Context
+You are implementing a new feature in this FastAPI + PostgreSQL codebase (SHÉ OS).
 
-The GET endpoints for all 37 associations are already built and working. The repositories, services, and routers exist. What is missing is the **POST (link) and DELETE (unlink)** endpoints for 35 of the 37 associations.
+Before writing anything, read `/app` and study the existing schemas, services, routers, models, and repositories for the Item, Initiative, SourcingTrip, Observation, and Decision entities. Match those patterns exactly: the five-layer schema pattern, the repository pattern, and the dependency-injection style. Put `examples=[...]` on every schema field, as conventions require. Do not invent field names or methods: use the real ones you find in the code.
 
-`brand_items` and `item_partners` are fully complete — do not touch those.
+This project is SYNCHRONOUS SQLAlchemy. `app/database/session.py` uses `create_engine` + `sessionmaker` (`SessionLocal`), and config is read with `os.getenv`, not pydantic-settings. Everything you add must follow both facts:
 
----
+- No async. Use the synchronous `anthropic` client, a plain `def` route handler (not `async def`), and synchronous repository/session calls.
+- Read config with `os.getenv`, the same way `DATABASE_URL` is read in `app/database/session.py`. There is no Settings class, so do not create or assume one.
 
-## What to add
+## Feature
 
-For every association listed below, add two things to the **existing** router, service, and repository files:
+Add an AI synthesis endpoint that turns an Initiative's Observations into a structured Decision draft for a human to review. The AI drafts, a human commits. The endpoint must NOT write to the database and must NOT commit a Decision. Committing stays on the existing Decision create flow.
 
-**Router:** two new endpoint functions — POST to link, DELETE to unlink.
+New endpoint: `POST /initiatives/{initiative_id}/synthesize`, returns a draft only.
 
-**Service:** two new service functions — one to link, one to unlink.
+## Constraints
 
-**Repository:** two new repository functions — one to insert a row, one to delete a row.
+- No database migrations. No changes to any SQLAlchemy model.
+- Do not change existing repositories except to add a read method that lists observations by initiative, and only if one does not already exist (reuse the existing one if it does).
+- Keep the router thin: wire dependencies, call the service, map errors to HTTP. All AI logic lives in the service.
+- If branch-per-feature is your flow, create `feature/ai-synthesis` off `feature/api-layer`.
+- Add `anthropic` to the project dependencies the same way other deps are managed here.
 
-Follow the exact pattern already implemented for `brand_items` in `app/routers/associations/brand_associations.py`, `app/services/associations/brand_associations.py`, and `app/repositories/associations/brand_associations.py`. Use those files as the reference implementation.
+## Files to create (adjust paths to this repo's actual layout)
 
----
+1. `/app/schemas/synthesis.py`
+2. `/app/services/synthesis.py`
+3. `/app/api/routers/synthesis.py`
+4. Config: add two `getenv` reads (see Config section), in a location consistent with the repo. If there is no config module, put them in `app/database/session.py`-style module constants or a small `app/core/config.py`; do not introduce pydantic-settings.
 
-## Pattern reference
+## Config
 
-**Repository — link:**
+Read these with `os.getenv`, matching `DATABASE_URL` in `app/database/session.py`:
+
 ```python
-def link_{entity_b}_to_{entity_a}(
-    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
-) -> None:
-    db.execute(
-        {association_table}.insert().values(
-            {entity_a}_id={entity_a}_id,
-            {entity_b}_id={entity_b}_id,
-        )
-    )
-    db.flush()
+from os import getenv
+
+ANTHROPIC_API = getenv("ANTHROPIC_API", "")
+# Pin to a current Sonnet-class model. Verify the exact id at
+# https://docs.claude.com/en/docs/about-claude/models
+ANTHROPIC_MODEL = getenv("ANTHROPIC_MODEL", "claude-sonnet-5")
 ```
 
-**Repository — unlink:**
-```python
-def unlink_{entity_b}_from_{entity_a}(
-    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
-) -> bool:
-    result = db.execute(
-        delete({association_table}).where(
-            {association_table}.c.{entity_a}_id == {entity_a}_id,
-            {association_table}.c.{entity_b}_id == {entity_b}_id,
-        )
-    )
-    db.flush()
-    return result.rowcount > 0
-```
+Add `ANTHROPIC_API` (and optionally `ANTHROPIC_MODEL`) to `.env` / the environment.
 
-**Service — link:**
-```python
-def link_{entity_b}_to_{entity_a}(
-    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
-) -> None:
-    # verify entity_a exists
-    # verify entity_b exists
-    # try: repo.link, db.commit()
-    # except IntegrityError: db.rollback(), raise AlreadyLinkedError
-```
+## Database access
 
-**Service — unlink:**
-```python
-def unlink_{entity_b}_from_{entity_a}(
-    db: Session, {entity_a}_id: UUID, {entity_b}_id: UUID
-) -> None:
-    # verify entity_a exists
-    # deleted = repo.unlink()
-    # if not deleted: raise NotLinkedError
-    # db.commit()
-```
+Use the existing DB-session dependency that yields a `SessionLocal()`. If one does not exist yet, add the standard dependency to `app/database/session.py`:
 
-**Router — link:**
 ```python
-@router.post(
-    "/{entity_a_id}/{entity_b_plural}/{entity_b_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def link_{entity_a}_{entity_b}(
-    {entity_a}_id: UUID,
-    {entity_b}_id: UUID,
-    db: Session = Depends(get_db),
-):
+def get_db():
+    db = SessionLocal()
     try:
-        assoc_service.link_{entity_b}_to_{entity_a}(db, {entity_a}_id, {entity_b}_id)
-    except {EntityA}NotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
-    except {EntityB}NotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
-    except AlreadyLinkedError as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        yield db
+    finally:
+        db.close()
 ```
 
-**Router — unlink:**
+The router should depend on it as `db: Session = Depends(get_db)` and construct/obtain the observation repository from that session per the existing repository pattern.
+
+## Schemas (`app/schemas/synthesis.py`)
+
+- `DecisionDraft`: `recommendation: str`, `rationale: str`, `confidence: Literal["low", "medium", "high"]`, `source_observation_ids: list[UUID]`. This is a transient draft, never persisted. Check the real Decision schema and align the naming of recommendation/rationale/confidence with the fields a human fills on a committed Decision.
+- `SynthesisResponse`: `initiative_id: UUID`, `observation_count: int`, `draft: DecisionDraft`.
+- `examples=[...]` on every field.
+
+## Service (`app/services/synthesis.py`)
+
+- Synchronous function: `synthesize_decision(initiative_id, observation_repo, client, *, model, max_tokens=1024) -> SynthesisResponse`.
+- Fetch the initiative's observations through the repository (synchronously). If there are none, raise `NoObservationsError`.
+- Build the prompt from the observations' real text field (find the actual field on the Observation model, do not assume a name). Include each observation's id in the prompt so the model can ground itself.
+- Call the Claude API and force structured output via tool use (see reference below). Read recommendation/rationale/confidence from the tool_use block.
+- Set `source_observation_ids` from the fetched observations, never from the model output.
+- Define exceptions: `SynthesisError` (base), `NoObservationsError`, `MalformedDraftError` (raised when there is no tool_use block).
+- System prompt: instruct the model to ground everything only in the given observations, be honest about uncertainty, and set confidence by how well the observations support the recommendation. It must not recommend beyond what the observations say.
+
+## Router (`app/api/routers/synthesis.py`)
+
+- `POST /initiatives/{initiative_id}/synthesize`, `response_model=SynthesisResponse`.
+- Synchronous `def` handler (not `async def`) so FastAPI runs it in a threadpool, since both the DB and the Anthropic call are blocking.
+- Dependencies: `db: Session = Depends(get_db)`, and a `get_anthropic_client()` provider that returns `Anthropic(api_key=ANTHROPIC_API)`. Build the observation repository from `db`.
+- Map `NoObservationsError` to HTTP 404, any other `SynthesisError` to HTTP 502.
+- Register the router wherever the other routers are registered.
+
+## Claude API reference (use exactly this pattern, do not rely on older API knowledge)
+
+Use the official `anthropic` SDK with the SYNCHRONOUS client. Force the model to answer through a tool so the output is structured and typed instead of parsed from free text:
+
 ```python
-@router.delete(
-    "/{entity_a_id}/{entity_b_plural}/{entity_b_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
+from anthropic import Anthropic
+
+client = Anthropic(api_key=ANTHROPIC_API)
+
+DECISION_TOOL = {
+    "name": "draft_decision",
+    "description": "Draft one decision grounded only in the given observations.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "recommendation": {"type": "string"},
+            "rationale": {"type": "string"},
+            "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
+        },
+        "required": ["recommendation", "rationale", "confidence"],
+    },
+}
+
+message = client.messages.create(
+    model=model,
+    max_tokens=1024,
+    system=SYSTEM_PROMPT,
+    tools=[DECISION_TOOL],
+    tool_choice={"type": "tool", "name": "draft_decision"},
+    messages=[{"role": "user", "content": prompt}],
 )
-def unlink_{entity_a}_{entity_b}(
-    {entity_a}_id: UUID,
-    {entity_b}_id: UUID,
-    db: Session = Depends(get_db),
-):
-    try:
-        assoc_service.unlink_{entity_b}_from_{entity_a}(db, {entity_a}_id, {entity_b}_id)
-    except {EntityA}NotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
-    except NotLinkedError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+
+tool_use = next((b for b in message.content if b.type == "tool_use"), None)
+if tool_use is None:
+    raise MalformedDraftError("Model returned no tool_use block.")
+data = tool_use.input  # dict with recommendation, rationale, confidence
 ```
 
----
+## Definition of done
 
-## Associations to complete — full table
-
-For each row below, add POST and DELETE to the existing router/service/repository files.
-
-### `app/routers/associations/brand_associations.py`
-
-| Association table | URL segment | Entity B ID param | Entity B repo get fn |
-|---|---|---|---|
-| `brand_initiatives` | `initiatives` | `initiative_id` | `initiative_repo.get` |
-| `brand_partners` | `partners` | `partner_id` | `partner_repo.get` |
-| `brand_sourcing_trips` | `sourcing-trips` | `sourcing_trip_id` | `trip_repo.get` — **DELETE only** (POST already exists) |
-| `brand_observations` | `observations` | `observation_id` | `observation_repo.get` |
-| `brand_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
-| `brand_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
-| `brand_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
-| `brand_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
-
-Note: `brand_sourcing_trips` already has a POST — add only the DELETE.
-
-### `app/routers/associations/initiative_associations.py`
-
-| Association table | URL segment | Entity B ID param | Entity B repo get fn |
-|---|---|---|---|
-| `initiative_items` | `items` | `item_id` | `item_repo.get` |
-| `initiative_partners` | `partners` | `partner_id` | `partner_repo.get` |
-| `initiative_sourcing_trips` | `sourcing-trips` | `sourcing_trip_id` | `trip_repo.get` |
-| `initiative_observations` | `observations` | `observation_id` | `observation_repo.get` |
-| `initiative_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
-| `initiative_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
-| `initiative_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
-| `initiative_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
-
-### `app/routers/associations/sourcing_trip_associations.py`
-
-| Association table | URL segment | Entity B ID param | Entity B repo get fn |
-|---|---|---|---|
-| `sourcing_trip_items` | `items` | `item_id` | `item_repo.get` |
-| `sourcing_trip_partners` | `partners` | `partner_id` | `partner_repo.get` |
-| `sourcing_trip_observations` | `observations` | `observation_id` | `observation_repo.get` |
-| `sourcing_trip_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
-| `sourcing_trip_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
-| `sourcing_trip_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
-
-### `app/routers/associations/observation_associations.py`
-
-| Association table | URL segment | Entity B ID param | Entity B repo get fn |
-|---|---|---|---|
-| `observation_decisions` | `decisions` | `decision_id` | `decision_repo.get` |
-| `observation_items` | `items` | `item_id` | `item_repo.get` |
-| `observation_partners` | `partners` | `partner_id` | `partner_repo.get` |
-| `observation_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
-| `observation_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
-| `observation_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
-| `observation_inventory_movements` | `inventory-movements` | `inventory_movement_id` | `movement_repo.get` |
-
-### `app/routers/associations/decision_associations.py`
-
-| Association table | URL segment | Entity B ID param | Entity B repo get fn |
-|---|---|---|---|
-| `decision_items` | `items` | `item_id` | `item_repo.get` |
-| `decision_partners` | `partners` | `partner_id` | `partner_repo.get` |
-| `decision_purchase_orders` | `purchase-orders` | `purchase_order_id` | `po_repo.get` |
-| `decision_inbound_shipments` | `inbound-shipments` | `inbound_shipment_id` | `shipment_repo.get` |
-| `decision_inventory_locations` | `inventory-locations` | `inventory_location_id` | `location_repo.get` |
-| `decision_inventory_movements` | `inventory-movements` | `inventory_movement_id` | `movement_repo.get` |
-
----
-
-## Import paths for entity repositories
-
-These already exist and are importable as:
-
-```python
-from app.repositories import brand as brand_repo
-from app.repositories import partner as partner_repo
-from app.repositories import item as item_repo
-from app.repositories import initiative as initiative_repo
-from app.repositories import sourcing_trip as trip_repo
-from app.repositories import observation as observation_repo
-from app.repositories import decision as decision_repo
-from app.repositories import purchase_order as po_repo
-from app.repositories import inbound_shipment as shipment_repo
-from app.repositories import inventory_location as location_repo
-from app.repositories import inventory_movement as movement_repo
-```
-
-Each has a `get(db, id)` function returning the ORM object or `None`.
-
----
-
-## Import paths for association tables
-
-All table objects are importable from:
-
-```python
-from app.models.associations import (
-    brand_initiatives,
-    brand_partners,
-    brand_sourcing_trips,
-    brand_observations,
-    brand_decisions,
-    brand_purchase_orders,
-    brand_inbound_shipments,
-    brand_inventory_locations,
-    initiative_items,
-    initiative_partners,
-    initiative_sourcing_trips,
-    initiative_observations,
-    initiative_decisions,
-    initiative_purchase_orders,
-    initiative_inbound_shipments,
-    initiative_inventory_locations,
-    sourcing_trip_items,
-    sourcing_trip_partners,
-    sourcing_trip_observations,
-    sourcing_trip_decisions,
-    sourcing_trip_purchase_orders,
-    sourcing_trip_inbound_shipments,
-    observation_decisions,
-    observation_items,
-    observation_partners,
-    observation_purchase_orders,
-    observation_inbound_shipments,
-    observation_inventory_locations,
-    observation_inventory_movements,
-    decision_items,
-    decision_partners,
-    decision_purchase_orders,
-    decision_inbound_shipments,
-    decision_inventory_locations,
-    decision_inventory_movements,
-)
-```
-
----
-
-## Special case — `inventory_movement_id`
-
-The `observation_inventory_movements` and `decision_inventory_movements` tables link to `inventory_movements`. The repo get function is `movement_repo.get(db, movement_id)` from `app.repositories.inventory_movement`.
-
----
-
-## Verification
-
-After implementation, run:
-
-```bash
-grep -r "def link_\|def unlink_" app/routers/associations/ | grep -v "__pycache__" | wc -l
-```
-
-Expected result: **70** — 35 link functions + 35 unlink functions across all association router files. (`brand_items` and `item_partners` already contribute 4 of those 70.)
-
-Then spot-check by linking SUMA to Naija New Year via `POST /brands/{suma_id}/sourcing-trips/{naija_new_year_id}` — should return 204, and `GET /brands/{suma_id}/sourcing-trips` should then include the Naija New Year trip.
+- `POST /initiatives/{id}/synthesize` returns a valid `SynthesisResponse` with a grounded draft and correct `source_observation_ids`.
+- Returns 404 when the initiative has no observations.
+- No DB writes anywhere in the flow, no migrations, no model changes.
+- Every schema field has `examples`.
+- Tests, matching this repo's existing test style and framework:
+  - A service test with the Anthropic client mocked, asserting it forces `tool_choice` and maps the tool output into a `DecisionDraft` with the right `source_observation_ids`.
+  - A router test that mocks the service and asserts both the success path and the 404 path.
