@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.associations import initiative_observations
 from app.models.observation import Observation
 
 
@@ -17,6 +18,20 @@ def list_all(db: Session, limit: int = 100, offset: int = 0) -> list[Observation
             .order_by(Observation.observed_at.desc().nullslast())
             .limit(limit)
             .offset(offset)
+        )
+    )
+
+
+def list_by_initiative(db: Session, initiative_id: UUID) -> list[Observation]:
+    return list(
+        db.scalars(
+            select(Observation)
+            .join(
+                initiative_observations,
+                initiative_observations.c.observation_id == Observation.id,
+            )
+            .where(initiative_observations.c.initiative_id == initiative_id)
+            .order_by(Observation.observed_at.desc().nullslast())
         )
     )
 

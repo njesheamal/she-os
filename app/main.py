@@ -14,6 +14,7 @@ from app.routers import decision
 from app.routers import inventory_location
 from app.routers import purchase_order
 from app.routers import inbound_shipment
+from app.routers import synthesis
 from app.routers.associations import (
     brand_associations,
     decision_associations,
@@ -52,6 +53,7 @@ app.include_router(initiative.router)
 app.include_router(sourcing_trip.router)
 app.include_router(observation.router)
 app.include_router(decision.router)
+app.include_router(synthesis.router)
 app.include_router(inventory_location.router)
 app.include_router(purchase_order.router)
 app.include_router(inbound_shipment.router)
