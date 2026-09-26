@@ -35,6 +35,22 @@ class DecisionStatus(StrEnum):
     SUPERSEDED = "superseded"
     ARCHIVED = "archived"
 
+class FieldNoteStatus(StrEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
+class MediaKind(StrEnum):
+    IMAGE = "image"
+    GIF = "gif"
+    VIDEO = "video"
+
+class SourceKind(StrEnum):
+    ARTICLE = "article"
+    REPO = "repo"
+    DOC = "doc"
+    TOOL = "tool"
+    BOOK = "book"
+
 class PurchaseOrderStatus(StrEnum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
