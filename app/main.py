@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from pathlib import Path
 from sqlalchemy import text
 from dotenv import load_dotenv
 
@@ -28,6 +30,8 @@ from app.routers.inventory_movement import balances_router
 
 load_dotenv()
 
+ORRERY_PAGE = Path(__file__).resolve().parent.parent / "frontend"
+ORRERY_PAGE = Path(__file__).resolve().parent.parent / "frontend" / "orrery.html"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -73,3 +77,8 @@ def root():
         "message": "SHÉ OS backend is alive.",
         "mission": "First Light",
     }
+
+
+@app.get("/orrery", include_in_schema=False)
+def orrery():
+    return FileResponse(ORRERY_PAGE)
