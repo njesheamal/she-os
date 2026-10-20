@@ -30,7 +30,6 @@ from app.routers.inventory_movement import balances_router
 
 load_dotenv()
 
-ORRERY_PAGE = Path(__file__).resolve().parent.parent / "frontend"
 ORRERY_PAGE = Path(__file__).resolve().parent.parent / "frontend" / "orrery.html"
 
 @asynccontextmanager
