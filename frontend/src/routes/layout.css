@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+
+:root {
+	--ground: #0a0a18;
+	--indigo-deep: #1c1a4a;
+	--indigo-lit: #2c2e63;
+	--metal: #c4beb0;
+	--metal-shadow: #9a958a;
+	--brass: #b98e5e;
+	--starlight: #f2e6cc;
+	--body-cream: #d7cfbd;
+	--label: #6366b0;
+	--planet-suma: #b56a46;
+	--planet-gida: #2f7057;
+	--planet-tufa: #3b3f93;
+	--planet-rocks: #b9bdc9;
+	--planet-fallback: #6b6e8f;
+	font-family: 'Manrope', sans-serif;
+	color: var(--starlight);
+	background: var(--ground);
+	color-scheme: dark;
+}
+
+html,
+body {
+	min-width: 320px;
+	min-height: 100%;
+	margin: 0;
+	background: var(--ground);
+	color: var(--starlight);
+	font-family: 'Manrope', sans-serif;
+}
+
+button,
+a {
+	font: inherit;
+}
+
+button {
+	color: inherit;
+}
