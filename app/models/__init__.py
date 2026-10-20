@@ -22,6 +22,7 @@ from app.models.initiative import Initiative
 from app.models.sourcing_trip import SourcingTrip
 from app.models.observation import Observation
 from app.models.decision import Decision
+from app.models.field_note import FieldNote
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_line import PurchaseOrderLine
 from app.models.inbound_shipment import InboundShipment
@@ -45,6 +46,7 @@ __all__ = [
     "SourcingTrip",
     "Observation",
     "Decision",
+    "FieldNote",
     "PurchaseOrder",
     "PurchaseOrderLine",
     "InboundShipment",
