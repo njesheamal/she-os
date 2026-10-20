@@ -3,11 +3,14 @@
 	import gsap from 'gsap';
 	import { getBrands, getPublishedFieldNotes, type Brand, type FieldNote } from '../../lib/api';
 
+	// The discriminant keeps brand and note readout fields type-safe in the template.
 	type Selection = { kind: 'brand'; item: Brand } | { kind: 'note'; item: FieldNote };
 	type Point = { x: number; y: number };
 	type Promotion = { id: string; path: string };
 
+	// Reserved renderer input: promotions are intentionally empty, so no trails render yet.
 	const promotions: Promotion[] = [];
+	// All scene geometry is authored in this SVG viewBox coordinate system.
 	const center = { x: 615, y: 455 };
 	const placeholderStars: Point[] = [
 		{ x: -58, y: 8 },
@@ -37,6 +40,7 @@
 	let planetDriftTarget: { progress: number } | undefined;
 	let cameraFrame = 0;
 
+	// Derive each planet's position from its orbit instead of mutating SVG elements.
 	const planetPoints = $derived(
 		brands.map((brand, index) => {
 			const rx = 150 + index * 90;
@@ -163,6 +167,7 @@
 
 	function handleSkyClick(event: PointerEvent): void {
 		if (!(event.target instanceof Element)) return;
+		// Planet and note targets handle selection themselves; all other sky clicks dismiss the rail.
 		if (!event.target.closest('.planet-hit, .note-hit')) closeReadout();
 	}
 
@@ -267,6 +272,7 @@
 			});
 		}
 
+		// Keep GSAP motion synchronized with live changes to the OS reduced-motion setting.
 		const handleMotionPreference = (event: MediaQueryListEvent) => {
 			reducedMotion = event.matches;
 			if (event.matches) {
@@ -300,6 +306,7 @@
 		};
 		motionPreference.addEventListener('change', handleMotionPreference);
 
+		// Request both resources together, but let either collection remain usable if the other fails.
 		void (async () => {
 			try {
 				const [brandResult, noteResult] = await Promise.allSettled([
@@ -414,6 +421,7 @@
 				aria-label="Elliptical brand orbits and published field note constellation"
 			>
 				<defs>
+					<!-- The single warm glow belongs to the sun; planet gradients add spherical shading. -->
 					<radialGradient id="sun-glow">
 						<stop offset="0%" stop-color="#F2E6CC" stop-opacity="0.2" />
 						<stop offset="42%" stop-color="#F2E6CC" stop-opacity="0.07" />
@@ -428,10 +436,12 @@
 					{/each}
 				</defs>
 
+				<!-- Camera transform frames the system; separate offsets give scene layers depth. -->
 				<g
 					transform={`translate(${center.x + camera.x} ${center.y + camera.y}) scale(${camera.scale}) translate(${-center.x} ${-center.y})`}
 				>
 					<g transform={`translate(${parallax.x * 0.8} ${parallax.y * 0.8})`}>
+						<!-- Full ellipses mark the orbits; the front half is overdrawn slightly brighter. -->
 						{#each planetPoints as point (point.brand.id)}
 							<ellipse
 								cx={center.x}
@@ -455,7 +465,9 @@
 							ESTATE
 						</text>
 
+						<!-- Each planet remains a keyboard-accessible SVG control. -->
 						{#each planetPoints as point (point.brand.id)}
+							<!-- Notes cluster stays visible when empty, and brightens/connects on hover. -->
 							<g
 								role="button"
 								tabindex="0"
@@ -576,6 +588,7 @@
 		</div>
 
 		{#if mode === 'grid'}
+			<!-- Grid is layered over the mounted sky so closing it returns to the same scene. -->
 			<div
 				class="grid-overlay"
 				bind:this={gridElement}
@@ -636,6 +649,7 @@
 		{/if}
 
 		{#if selected && mode === 'sky'}
+			<!-- Mount the glass rail only after a selection; the grid suppresses it entirely. -->
 			<aside class="readout" class:has-selection={selected !== null} bind:this={readoutElement}>
 				<div class="readout-topline">
 					<p class="micro-label">INSTRUMENT VOICE · DATA</p>

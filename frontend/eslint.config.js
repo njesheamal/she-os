@@ -8,6 +8,7 @@ import ts from 'typescript-eslint';
 
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
+// Compose the recommended JS, TypeScript, and Svelte rules, then let Prettier own formatting.
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	js.configs.recommended,
@@ -24,6 +25,7 @@ export default defineConfig(
 		}
 	},
 	{
+		// Svelte's compiler needs TypeScript project information for type-aware component checks.
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {

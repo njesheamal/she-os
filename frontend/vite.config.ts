@@ -21,6 +21,7 @@ export default defineConfig({
 	],
 	server: {
 		proxy: {
+			// Preserve same-origin browser requests while forwarding /api/* to FastAPI's root paths.
 			'/api': {
 				target: 'http://localhost:8000',
 				changeOrigin: true,

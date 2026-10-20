@@ -1,7 +1,9 @@
 {
+	// SvelteKit generates route and framework types in its own config.
 	"extends": "$app/tsconfig",
 	"compilerOptions": {
 		"strict": true,
+		// Include SvelteKit's app types and Node types used by Vite configuration.
 		"types": ["$app/types", "node"]
 	},
 	"include": ["src", "vite.config.ts"]

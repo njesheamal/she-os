@@ -1,5 +1,6 @@
 const API_BASE = '/api';
 
+// Keep browser requests same-origin; Vite forwards this prefix to the backend during development.
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	const response = await fetch(`${API_BASE}${path}`, {
 		...init,
@@ -12,6 +13,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	if (!response.ok) {
 		let detail = '';
 		try {
+			// FastAPI errors commonly provide a useful `detail`; non-JSON error bodies are valid too.
 			const payload = (await response.json()) as { detail?: string };
 			detail = payload.detail ? `: ${payload.detail}` : '';
 		} catch {
