@@ -32,6 +32,9 @@ from app.repositories import purchase_order as po_repo
 from app.services.observation import ObservationNotFoundError
 from app.services.inbound_shipment import _to_read as shipment_to_read
 from app.services.purchase_order import _to_read as po_to_read
+from app.services.item import ItemNotFoundError
+from app.services.partner import PartnerNotFoundError
+from app.services.decision import DecisionNotFoundError
 
 
 class AlreadyLinkedError(Exception):
@@ -157,5 +160,104 @@ def unlink_inventory_movement_from_observation(db: Session, observation_id: UUID
     if result.rowcount == 0:
         raise NotLinkedError(
             f"Observation {observation_id} is not linked to inventory movement {inventory_movement_id}"
+        )
+    return True
+
+
+def link_item_to_observation(db: Session, observation_id: UUID, item_id: UUID) -> None:
+    _get_observation_or_raise(db, observation_id)
+    if item_repo.get(db, item_id) is None:
+        raise ItemNotFoundError(f"No item found with ID {item_id}")
+    try:
+        db.execute(
+            observation_items.insert().values(
+                observation_id=observation_id, item_id=item_id
+            )
+        )
+        db.flush()
+    except IntegrityError as exc:
+        raise AlreadyLinkedError(
+            f"Observation {observation_id} is already linked to item {item_id}"
+        ) from exc
+
+
+def unlink_item_from_observation(db: Session, observation_id: UUID, item_id: UUID) -> bool:
+    _get_observation_or_raise(db, observation_id)
+    result = db.execute(
+        delete(observation_items).where(
+            observation_items.c.observation_id == observation_id,
+            observation_items.c.item_id == item_id,
+        )
+    )
+    db.flush()
+    if result.rowcount == 0:
+        raise NotLinkedError(
+            f"Observation {observation_id} is not linked to item {item_id}"
+        )
+    return True
+
+
+def link_partner_to_observation(db: Session, observation_id: UUID, partner_id: UUID) -> None:
+    _get_observation_or_raise(db, observation_id)
+    if partner_repo.get(db, partner_id) is None:
+        raise PartnerNotFoundError(f"No partner found with ID {partner_id}")
+    try:
+        db.execute(
+            observation_partners.insert().values(
+                observation_id=observation_id, partner_id=partner_id
+            )
+        )
+        db.flush()
+    except IntegrityError as exc:
+        raise AlreadyLinkedError(
+            f"Observation {observation_id} is already linked to partner {partner_id}"
+        ) from exc
+
+
+def unlink_partner_from_observation(db: Session, observation_id: UUID, partner_id: UUID) -> bool:
+    _get_observation_or_raise(db, observation_id)
+    result = db.execute(
+        delete(observation_partners).where(
+            observation_partners.c.observation_id == observation_id,
+            observation_partners.c.partner_id == partner_id,
+        )
+    )
+    db.flush()
+    if result.rowcount == 0:
+        raise NotLinkedError(
+            f"Observation {observation_id} is not linked to partner {partner_id}"
+        )
+    return True
+
+
+def link_decision_to_observation(db: Session, observation_id: UUID, decision_id: UUID) -> None:
+    _get_observation_or_raise(db, observation_id)
+    if decision_repo.get(db, decision_id) is None:
+        raise DecisionNotFoundError(f"No decision found with ID {decision_id}")
+    try:
+        db.execute(
+            observation_decisions.insert().values(
+                observation_id=observation_id, decision_id=decision_id
+            )
+        )
+        db.flush()
+    except IntegrityError as exc:
+        raise AlreadyLinkedError(
+            f"Observation {observation_id} is already linked to decision {decision_id}"
+        ) from exc
+
+
+def unlink_decision_from_observation(db: Session, observation_id: UUID, decision_id: UUID) -> bool:
+    _get_observation_or_raise(db, observation_id)
+    result = db.execute(
+        delete(observation_decisions).where(
+            observation_decisions.c.observation_id == observation_id,
+            observation_decisions.c.decision_id == decision_id,
+        )
+    )
+    db.flush()
+    if result.rowcount == 0:
+        raise NotLinkedError(
+            f"Observation {observation_id} is not linked to decision {decision_id}"
         )
     return True
