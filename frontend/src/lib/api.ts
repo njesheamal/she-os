@@ -39,6 +39,17 @@ export interface Brand {
 	updated_at: string;
 }
 
+export interface Initiative {
+	id: string;
+	slug: string;
+	name: string;
+	description?: string | null;
+	status?: string | null;
+	initiative_type_id?: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
 export interface FieldNote {
 	id: string;
 	title: string;
@@ -58,4 +69,8 @@ export async function getBrands(): Promise<Brand[]> {
 
 export async function getPublishedFieldNotes(): Promise<FieldNote[]> {
 	return request<FieldNote[]>('/field-notes?status=published');
+}
+
+export async function getInitiatives(): Promise<Initiative[]> {
+	return request<Initiative[]>('/initiatives');
 }
